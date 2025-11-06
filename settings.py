@@ -1,0 +1,4 @@
+SCREEN_WIDTH = 1200 #px
+SCREEN_HEIGHT = 800 #px
+
+GAME_TITLE = "GradProj"
