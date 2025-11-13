@@ -15,14 +15,14 @@ Hráčova postava je vlastně dlužník nějáké smyšlené enitě/společnosti
 
 Po splacení "úrovně" dluhu hráč postupuje na další úroveň. Pokud se hráčovi nepodaří "úrovňový" dluh splatit, končí***.
 
-\*Horní hranice může být dynamická na více faktorech (úroveň, obtížnost, efekty, atp.).
-\*\*Jeden z mých nápadů je, že hráč bude moct pokusit se odhadnout přesné číslo pro získání vyšší odměny.
-\*\*\*V plánu jsou nějaké hrozby, které by mohly body krást, nebo hru rovnou ukončit.
+- \*Horní hranice může být dynamická na více faktorech (úroveň, obtížnost, efekty, atp.).
+- \*\*Jeden z mých nápadů je, že hráč bude moct pokusit se odhadnout přesné číslo pro získání vyšší odměny.
+- \*\*\*V plánu jsou nějaké hrozby, které by mohly body krást, nebo hru rovnou ukončit.
 
 # Plány
-[] Postoupení na další úroveň
-[] Nekonečno úrovní
-[] Multipliery podle Temporary bodů (více Temporary bodů = vyšší odměny)
-[] Efekty/Efektory (zvýšení rozsahu, dvojnásobná odměna, pomoc při odhadu, atd.)
-[] Pokusy o přesný odhad pro vyšší odměnu
-[] Hrozby (časovač, nepřátelé, atd.)
+- [ ] Postoupení na další úroveň
+- [ ] Nekonečno úrovní
+- [ ] Multipliery podle Temporary bodů (více Temporary bodů = vyšší odměny)
+- [ ] Efekty/Efektory (zvýšení rozsahu, dvojnásobná odměna, pomoc při odhadu, atd.)
+- [ ] Pokusy o přesný odhad pro vyšší odměnu
+- [ ] Hrozby (časovač, nepřátelé, atd.)
