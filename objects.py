@@ -1,6 +1,7 @@
 import pygame
 import settings
 import random
+import math
 
 pygame.font.init()
 
@@ -37,7 +38,7 @@ class ClueDisplay():
         self.text_rect = self.text_surf.get_rect(center=self.rect.center)
 
         # ---- Background setup ---------------------------------------------
-        bg_image_path = "assets/clue_display.png"
+        bg_image_path = "assets/main_screen.png"
         if bg_image_path:
             img = pygame.image.load(bg_image_path).convert_alpha()
             self.bg_surf = pygame.transform.smoothscale(img, self.size)
@@ -65,7 +66,7 @@ class ClueDisplay():
 
 
 class LabelDisplay():
-    def __init__(self, pos, size, *, label="", value="", font=None, text_color=(255, 255, 255)):
+    def __init__(self, pos, size, *, label="", value="", font=None, text_color=(255, 255, 255), bg_image_path=None):
         """
         :param pos: (x, y) tuple for the top‑left corner.
         :param size: (width, height) tuple.
@@ -82,6 +83,7 @@ class LabelDisplay():
         self.value = value
         self.font = font
         self.text_color = text_color
+        self.bg_image_path = bg_image_path
 
         
 
@@ -98,12 +100,11 @@ class LabelDisplay():
         if self.font is None:
             self.font = pygame.font.SysFont(None, 12)
         self.value_surf = self.font.render(self.value, True, self.text_color)
-        self.value_rect = self.value_surf.get_rect(center=(self.rect.centerx, self.rect.centery+50))
+        self.value_rect = self.value_surf.get_rect(center=(self.rect.centerx, self.rect.centery+25))
 
         # ---- Background setup ---------------------------------------------
-        bg_image_path = "assets/clue_display.png"
-        if bg_image_path:
-            img = pygame.image.load(bg_image_path).convert_alpha()
+        if self.bg_image_path:
+            img = pygame.image.load(self.bg_image_path).convert_alpha()
             self.bg_surf = pygame.transform.smoothscale(img, self.size)
         else:  # fallback to a light gray if image is not supplied
             self.bg_surf = pygame.Surface(self.size)
@@ -135,7 +136,7 @@ class LabelDisplay():
 
 
 class Button():
-    def __init__(self, pos, size, *, text="", font=None, text_color=(255, 255, 255), bg_color=None, bg_image_path=None, action=lambda: None):
+    def __init__(self, pos, size, *, text="", font=None, text_color=(255, 255, 255), bg_color=None, bg_image_path=None, action=lambda: None, disabled=False):
         """
         :param pos: (x, y) tuple for the top‑left corner.
         :param size: (width, height) tuple.
@@ -172,6 +173,7 @@ class Button():
 
         # ---- Action -------------------------------------------------------
         self.action = action
+        self.disabled = disabled
 
     def draw(self, surface):
         """Blit the button onto another surface."""
@@ -183,7 +185,7 @@ class Button():
         Call this from your main loop's event handler.
         If the mouse clicks inside the button, run the action.
         """
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.disabled:
             if self.rect.collidepoint(event.pos):
                 #print(f"Button '{self.text}' clicked")
                 self.action()
@@ -204,14 +206,15 @@ class Button():
 
 
 class Slider:
-    def __init__(self, pos, knob_radius, line_thickness,  size, min_val=0, max_val=100, start_val=0):
+    def __init__(self, pos, knob_radius, line_thickness, size, min_val=0, max_val=100, start_val=0):
         """
-        :param pos: (x, y) tuple for the top‑left corner.
+        :param pos: (x, y) tuple for the top-left corner.
         :param size: (width, height) tuple.
         :param min_val: Minimum value.
         :param max_val: Maximum value.
         :param start_val: Starting value.
         """
+
 
         # Position & size
         self.rect = pygame.Rect(0, 0, *size)
@@ -274,8 +277,8 @@ class Slider:
         #pygame.draw.rect(surface, (200, 200, 200), self.rect, self.line_thickness)
 
         # Draw knob
-        pygame.draw.circle(surface, (150, 0, 0),
-                            (self.knob_pos, self.rect.centery), self.knob_radius)
+        pygame.draw.circle(surface, (150, 0, 0), (self.knob_pos, self.rect.centery), self.knob_radius)
+        
         
 
     def update(self):
@@ -290,3 +293,94 @@ class Slider:
 
         if self.value == 100:
             print("DUMP")
+
+
+
+
+
+
+class SliderY:
+    def __init__(self, pos, knob_radius, line_thickness, size, min_val=0, max_val=100, start_val=0):
+        """
+        :param pos: (x, y) tuple for the top-left corner.
+        :param size: (width, height) tuple.
+        :param min_val: Minimum value.
+        :param max_val: Maximum value.
+        :param start_val: Starting value.
+        """
+
+
+        # Position & size
+        self.rect = pygame.Rect(0, 0, *size)
+        self.rect.center = pos
+        self.size = size
+
+        self.knob_radius = knob_radius
+        self.line_thickness = line_thickness
+
+        # Value range
+        self.min_val = min_val
+        self.max_val = max_val
+        self.value = start_val if start_val is not None else (min_val + max_val) // 2
+
+        # Knob attributes
+        self.knob_radius = knob_radius
+        self.knob_pos = self._value_to_position(self.value)
+
+        # Interaction state
+        self.dragging = False
+
+        self.target_value = self.value          
+        self.spring_speed = 5                  
+
+    def _value_to_position(self, val):
+        """Convert a slider value to an y-coordinate."""
+        ratio = (val - self.min_val) / (self.max_val - self.min_val)
+        return int(self.rect.y + ratio * self.rect.height)
+
+    def _position_to_value(self, pos_y):
+        """Convert an y-coordinate back to a slider value."""
+        rel_y = max(0, min(pos_y - self.rect.y, self.rect.height))
+        ratio = rel_y / self.rect.height
+        return int(self.min_val + ratio * (self.max_val - self.min_val))
+
+    def update_knob_position(self):
+        self.knob_pos = self._value_to_position(self.value)
+
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if the knob was clicked
+            mouse_pos = event.pos
+            if (mouse_pos[0] - self.rect.centerx) ** 2 + (mouse_pos[1] - self.knob_pos) ** 2 <= self.knob_radius ** 2:
+                self.dragging = True
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.dragging = False
+            self.target_value = self.min_val
+                
+        elif event.type == pygame.MOUSEMOTION and self.dragging:
+            # Update value based on mouse movement
+            new_val = self._position_to_value(event.pos[1])
+            self.value = max(self.min_val, min(new_val, self.max_val))
+            self.update_knob_position()
+
+    def draw(self, surface):
+        # Draw track
+        pygame.draw.line(surface, (200, 200, 200), (self.rect.centerx, self.rect.y), (self.rect.centerx, self.rect.y + self.rect.height), self.line_thickness)
+        #pygame.draw.rect(surface, (200, 200, 200), self.rect, self.line_thickness)
+
+        # Draw knob
+        pygame.draw.circle(surface, (150, 0, 0), (self.rect.centerx, self.knob_pos), self.knob_radius)
+        
+        
+
+    def update(self):
+        """Call once per frame to move toward the target."""
+        if not self.dragging:
+            # Move the current value a little closer to the target
+            diff = self.target_value - self.value
+            if abs(diff) > 0.5:                     # stop when close enough
+                step = diff / self.spring_speed     # smaller steps → smoother
+                self.value += step
+                self.update_knob_position()
