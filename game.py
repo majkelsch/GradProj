@@ -6,7 +6,6 @@ import random
 import time
 
 
-
 class Game:
     """Base class"""
     def __init__(self):
@@ -20,7 +19,7 @@ class Game:
 
         self.clue_number = None
         self.actual_number = None
-
+        self.debt = 50
 
         self.WAIT_EVENT = pygame.USEREVENT + 100
 
@@ -106,7 +105,7 @@ class Game:
         self.temp_disp = temporary
         self.objects.append(temporary)
 
-        pay = objects.LabelDisplay(pos=(100, 75), size=(200, 150), label="PAY WHAT YOU OWE", value="50", font=pygame.font.SysFont('Arial', 16), bg_image_path="assets/clue_display.png")
+        pay = objects.LabelDisplay(pos=(100, 75), size=(200, 150), label="PAY WHAT YOU OWE", value=str(self.debt), font=pygame.font.SysFont('Arial', 16), bg_image_path="assets/clue_display.png")
         self.pay_display = pay
         self.objects.append(pay)
 
@@ -121,6 +120,11 @@ class Game:
         slider = objects.SliderY(pos=(settings.SCREEN_WIDTH//2+250, settings.SCREEN_HEIGHT//2), knob_radius=10, line_thickness=10, size=(50,250))
         self.transfer_slider = slider
         self.objects.append(slider)
+
+        pay_slider = objects.SliderY(pos=(settings.SCREEN_WIDTH//2+300, settings.SCREEN_HEIGHT//2), knob_radius=10, line_thickness=10, size=(50,250))
+        self.pay_slider = pay_slider
+        self.objects.append(pay_slider)
+
         pass
 
 
@@ -178,7 +182,11 @@ class Game:
         if self.transfer_slider.value == 100:
             self.stored_disp.set_value(int(self.stored_disp.value) + int(self.temp_disp.value))
             self.temp_disp.set_value("0")
-        pass
+
+        if self.pay_slider.value == 100:
+            self.debt = self.debt - int(self.stored_disp.value)
+            self.stored_disp.set_value(str(0))
+            self.pay_display.set_value(str(self.debt))
 
     def render_queue(self):
         self.screen.fill((0, 0, 0))
@@ -194,6 +202,6 @@ class Game:
 
 if __name__ == "__main__":
     game = Game()
-    game.intro()
+    #game.intro()
     game.begin()
     game.run()
