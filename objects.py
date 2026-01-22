@@ -143,10 +143,8 @@ class Button():
         :param text: Text to display on the button.
         :param font: pygame.font.Font instance. If None, default font is used.
         :param text_color: RGB colour of the text.
-        :param bg_color: Solid background colour (RGB). Ignored if an image
-                         path is provided.
-        :param bg_image_path: Path to a PNG/JPG that will be stretched to the
-                             button size. If None, a solid colour is used.
+        :param bg_color: Solid background colour (RGB). Ignored if an image path is provided.
+        :param bg_image_path: Path to a PNG/JPG that will be stretched to the button size. If None, a solid colour is used.
         :param action: Function to call when the button is clicked.
         """
 
@@ -187,7 +185,7 @@ class Button():
         """
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.disabled:
             if self.rect.collidepoint(event.pos):
-                #print(f"Button '{self.text}' clicked")
+                print(f"Button '{self.text}' clicked")
                 self.action()
 
     def update(self):
@@ -384,3 +382,41 @@ class SliderY:
                 step = diff / self.spring_speed     # smaller steps → smoother
                 self.value += step
                 self.update_knob_position()
+
+
+
+
+
+class Leaderboard:
+    def __init__(self, pos, size, entries):
+        """
+        :param pos: (x, y) tuple for the top-left corner.
+        :param size: (width, height) tuple.
+        :param entries: List of dictionaries.
+        """
+
+
+        # Position & size
+        self.rect = pygame.Rect(0, 0, *size)
+        self.rect.center = pos
+        self.size = size
+
+        self.entries = entries
+
+    def draw(self, surface):
+        # Draw background
+        bg_surf = pygame.Surface(self.size)
+        bg_surf.fill((50, 50, 50))
+        surface.blit(bg_surf, self.rect.topleft)
+
+        # Draw entries
+        font = pygame.font.SysFont(None, 24)
+        for i, entry in enumerate(self.entries):
+            entry_text = f"{i+1}. {entry['user']['username']}: {entry['score']}"
+            text_surf = font.render(entry_text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(topleft=(self.rect.x + 10, self.rect.y + 10 + i * 30))
+            surface.blit(text_surf, text_rect)
+    def handle_event(self, event):
+        pass
+    def update(self):
+        pass

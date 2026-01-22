@@ -4,6 +4,7 @@ import objects
 import debug
 import random
 import time
+import db_handling
 
 
 class Game:
@@ -125,6 +126,8 @@ class Game:
         self.pay_slider = pay_slider
         self.objects.append(pay_slider)
 
+        print("Game started.")
+        self.run()
         pass
 
 
@@ -150,10 +153,55 @@ class Game:
             pygame.display.flip()
     pass
 
+    def main_menu(self):
+
+        menu_msg = objects.LabelDisplay(pos=(settings.SCREEN_WIDTH//2, settings.SCREEN_HEIGHT//2), size=(400, 400), label="MAIN MENU", value="(Press any key to start)", bg_image_path="assets/main_screen.png")
+        start_btn = objects.Button(pos=(settings.SCREEN_WIDTH//2+100, settings.SCREEN_HEIGHT//2), size=(200, 100), text="START", font=pygame.font.SysFont('Arial', 32), bg_color=(50,50,50), action=self.begin, bg_image_path="assets/btn_blank.png")
+        leaderboard_btn = objects.Button(pos=(settings.SCREEN_WIDTH//2-100, settings.SCREEN_HEIGHT//2), size=(200, 100), text="LEADERBOARD", font=pygame.font.SysFont('Arial', 32), bg_color=(50,50,50), action=self.leaderboard, bg_image_path="assets/btn_blank.png")
+
+        run = True
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+
+                elif event.type == pygame.KEYDOWN:
+                    run = False
+                    self.begin()
+
+                start_btn.handle_event(event)
+                leaderboard_btn.handle_event(event)
+
+            # MAIN MENU
+            self.screen.fill((0, 0, 0))
+            menu_msg.draw(self.screen)
+            start_btn.draw(self.screen)
+            leaderboard_btn.draw(self.screen)
+            pygame.display.flip()
+
+
+    def leaderboard(self):
+        leaderboard_msg = objects.Leaderboard(pos=(settings.SCREEN_WIDTH//2, settings.SCREEN_HEIGHT//2), size=(600, 400), entries=db_handling.query_rows(db_handling.GameSessionModel, include=['user']))
+
+        run = True
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+
+                elif event.type == pygame.KEYDOWN:
+                    run = False
+
+            # LEADERBOARD
+            self.screen.fill((0, 0, 0))
+            leaderboard_msg.draw(self.screen)
+            pygame.display.flip()
+
 
 
     def run(self):
         """Game loop / Update each frame"""
+        print("Game running.")
         while self.running:
             self.event_queue()
             self.update_queue()
@@ -202,6 +250,5 @@ class Game:
 
 if __name__ == "__main__":
     game = Game()
-    #game.intro()
-    game.begin()
-    game.run()
+    game.intro()
+    game.main_menu()
