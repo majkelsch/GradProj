@@ -1,3 +1,6 @@
 {
-    "volume": 50
+    "volume": 50,
+    "logged_in": false,
+    "username": "Anonymous",
+    "password": ""
 }

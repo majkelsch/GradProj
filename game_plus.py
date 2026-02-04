@@ -1,17 +1,19 @@
 import pygame
 import sys
 from enum import Enum
-import math
 import random
-import time
+import datetime
 
 import settings
 import objects_plus
 
 import db_handling
+from db_handling import UserModel as User
+
 
 # Initialize Pygame
 pygame.init()
+
 
 
 
@@ -23,14 +25,6 @@ class GameState(Enum):
     PLAY = 4
     LEADERBOARD = 5
     QUIT = 6
-
-
-
-
-
-
-
-
 
 
 
@@ -76,7 +70,6 @@ class IntroScreen:
             self.alpha = min(255, self.alpha + self.fade_speed)
         self.display_time += 1
         
-        # Auto-advance after display time
         if self.display_time >= self.max_display_time:
             return GameState.MAIN_MENU
         return GameState.INTRO
@@ -87,6 +80,17 @@ class IntroScreen:
         for text in self.texts.values():
             text.set_alpha(self.alpha)
             text.draw(screen)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -177,6 +181,15 @@ class MainMenu:
                 y=settings.SCREEN_HEIGHT-10,
                 color=(255,255,255),
                 align="bottomright"
+            ),
+            'user': objects_plus.Text(
+                text="Anonymous (Settings)",
+                prefix="Logged in as: ",
+                font=pygame.font.Font(None, 24),
+                x=settings.SCREEN_WIDTH//2,
+                y=settings.SCREEN_HEIGHT-10,
+                color=(255,255,255),
+                align="bottom"
             )
         }
 
@@ -203,6 +216,11 @@ class MainMenu:
         for text in self.texts.values():
             text.draw(screen)
 
+        if settings.load_settings()["logged_in"]:
+            self.texts['user'].set_text(settings.load_settings()["username"])
+        else:
+            self.texts['user'].set_text("Anonymous")
+
 
 
 
@@ -225,7 +243,6 @@ class MainMenu:
 class SettingsScreen:
     """Handles the settings screen"""
     def __init__(self):
-        self.back_button = objects_plus.Button(50, settings.SCREEN_HEIGHT - 80, 150, 50, "BACK", color=(255,255,255), hover_color=(0,0,0))
 
         self.texts = {
             'title': objects_plus.Text(
@@ -236,6 +253,13 @@ class SettingsScreen:
                 color=(255,255,255),
                 align="center"
             )
+        }
+
+        self.buttons = {
+            "back": objects_plus.Button(50, settings.SCREEN_HEIGHT - 80, 150, 50, "BACK", color=(255,255,255), hover_color=(0,0,0)),
+            "login": objects_plus.Button(settings.SCREEN_WIDTH//2+300, settings.SCREEN_HEIGHT-40, 150, 40, "Login", color=(255,255,255), hover_color=(0,0,0)),
+            "logout": objects_plus.Button(settings.SCREEN_WIDTH//2-75, settings.SCREEN_HEIGHT-40, 150, 40, "Logout", color=(255,255,255), hover_color=(0,0,0))
+
         }
 
 
@@ -255,13 +279,51 @@ class SettingsScreen:
             handle_color=(255, 255, 255),
             handle_hover_color=(200, 200, 200)
         )
+
+
+        self.username_input = objects_plus.InputField(
+            x=settings.SCREEN_WIDTH//2-300, 
+            y=settings.SCREEN_HEIGHT-40, 
+            width=300, 
+            height=40,
+            placeholder="Username",
+            max_length=128
+        )
+        self.password_input = objects_plus.InputField(
+            x=settings.SCREEN_WIDTH//2, 
+            y=settings.SCREEN_HEIGHT-40, 
+            width=300, 
+            height=40,
+            placeholder="Password",
+            max_length=128,
+            password=True
+        )
     
     def handle_event(self, event, mouse_pos):
         self.volume_slider.handle_event(event, mouse_pos)
-        if self.back_button.is_clicked(mouse_pos, event):
+        if self.buttons['back'].is_clicked(mouse_pos, event):
             return GameState.MAIN_MENU
         
         settings.save_setting("volume", self.volume_slider.get_value())
+
+        username = self.username_input.handle_event(event)
+        password = self.password_input.handle_event(event)
+        if (username or password) == "submit" or self.buttons['login'].is_clicked(mouse_pos, event):
+            user = db_handling.query_rows(db_handling.UserModel, {'username': self.username_input.get_text()})
+            user = user[0] if user else None
+            if user and user.check_password(self.password_input.get_text()):
+                settings.save_setting("username", self.username_input.get_text())
+                settings.save_setting("password", self.password_input.get_text())
+                settings.save_setting("logged_in", True)
+                self.username_input.clear()
+                self.password_input.clear()
+            else:
+                print("ERR")
+
+        if self.buttons['logout'].is_clicked(mouse_pos, event):
+            settings.save_setting("username", "Anonymous")
+            settings.save_setting("password", "")
+            settings.save_setting("logged_in", False)
         
         return GameState.SETTINGS
     
@@ -271,15 +333,26 @@ class SettingsScreen:
         self.volume_slider.check_hover(mouse_pos)
         self.volume_slider.draw(screen)
 
+        for button in self.buttons.values():
+            button.check_hover(mouse_pos)
+            button.draw(screen)
 
-
-        # Back button
-        self.back_button.check_hover(mouse_pos)
-        self.back_button.draw(screen)
+        if settings.load_settings()["logged_in"]:
+            self.buttons['logout'].set_visibility(True, True)
+            self.buttons['login'].set_visibility(False, False)
+        else:
+            self.buttons['login'].set_visibility(True, True)
+            self.buttons['logout'].set_visibility(False, False)
+            self.username_input.draw(screen)
+            self.password_input.draw(screen)
 
 
         for text in self.texts.values():
             text.draw(screen)
+
+    def update(self):
+        self.username_input.update()
+        self.password_input.update()
 
 
 
@@ -297,13 +370,25 @@ class SettingsScreen:
 class PlayScreen:
     """GAME STATE"""
     def __init__(self):
+        self.playing = True
+
+
         self.clue = None
         self.actual = None
         self.last_debt = 10
-        self.current_debt = 1
+        self.current_debt = 10
 
-        self.temporary_storage = 10
-        self.permanent_storage = 10
+        self.temporary_storage = 0
+        self.permanent_storage = 0
+
+        self.level = 1
+        self.score = 0
+        self.started_at = datetime.datetime.now()
+
+
+        
+
+
 
         self.timer_manager = objects_plus.TimerManager()
         self.timer_manager.add_timer("win_flash", 2000, self._reset)
@@ -314,9 +399,14 @@ class PlayScreen:
             self.announcement_flash.add_step(250, lambda: self.texts['announcement'].set_alpha(0))
             self.announcement_flash.add_step(250, lambda: self.texts['announcement'].set_alpha(255))
             i += 1
-        #self.announcement_flash.add_step(500, lambda: self.texts['announcement'].set_visibility(False))
+        self.announcement_flash.add_step(500, lambda: self.texts['announcement'].set_visibility(False))
 
-        
+        self.time_remaining = 200
+        self.timer_manager.add_timer("timer", 1000, self._timer)
+        self.timer_manager.start_timer("timer")
+
+        self.strikes = 0
+        self.table = objects_plus.LeaderboardTable(x=settings.SCREEN_WIDTH//2, y=settings.SCREEN_HEIGHT//2+300, width=int(settings.SCREEN_WIDTH*0.8), height=100, columns=["Rank", "User", "Level", "Score", "Date"], center_x=True, center_y=False, visible=False)
         
 
 
@@ -360,7 +450,25 @@ class PlayScreen:
                     y=250,
                     font=pygame.font.Font(None, 24),
                     visible=False
+            ),
+            'timer': objects_plus.Text(
+                    text=str(self.time_remaining),
+                    prefix="Remaining time: ",
+                    x=settings.SCREEN_WIDTH,
+                    y=0,
+                    font=pygame.font.Font(None, 24),
+                    align="topright"
                 )
+            ,
+            'strikes': objects_plus.Text(
+                    text=str(self.strikes),
+                    prefix="Strikes: ",
+                    x=settings.SCREEN_WIDTH,
+                    y=24,
+                    font=pygame.font.Font(None, 24),
+                    align="topright"
+                )
+
         }
 
         self.buttons = {
@@ -452,11 +560,19 @@ class PlayScreen:
             button.check_hover(mouse_pos)
             button.draw(screen)
 
+        self.table.draw(screen)
+
         self.texts['announcement'].draw(screen)
 
     def update(self):
         self.timer_manager.update_all()
         self.announcement_flash.update()
+
+
+        if self.playing != True:
+            self.playing = True
+            return GameState.MAIN_MENU
+        
         return GameState.PLAY
 
 
@@ -491,6 +607,7 @@ class PlayScreen:
         self.texts['clue'].set_color((0,255,0))
         self.timer_manager.start_timer("win_flash")
         self.temporary_storage += 1
+        self.score += 1
         self.actual = None
         self.texts['temporary_storage'].set_text(str(self.temporary_storage))
 
@@ -511,7 +628,7 @@ class PlayScreen:
 
 
     def _transfer(self):
-        self.buttons['transfer'].set_enabled(False)
+        [button.set_enabled(False) for button in self.buttons.values()]
         if self.temporary_storage != 0:
             self.timer_manager.add_timer("transfer_timer", 1000, self._transfer)
             self.timer_manager.start_timer("transfer_timer")
@@ -520,36 +637,71 @@ class PlayScreen:
             self.texts['permanent_storage'].set_text(str(self.permanent_storage))
             self.texts['temporary_storage'].set_text(str(self.temporary_storage))
         else:
-            self.buttons['transfer'].set_enabled(True)
+            [button.set_enabled(True) for button in self.buttons.values()]
 
     def _pay(self):
-        self.buttons['pay_off'].set_enabled(False)
+        [button.set_enabled(False) for button in self.buttons.values()]
         if self.current_debt != 0 and self.permanent_storage != 0:
-            self.timer_manager.add_timer("pay_timer", 1000, self._pay)
-            self.timer_manager.start_timer("pay_timer")
             self.current_debt -= 1
             self.permanent_storage -= 1
+            self.timer_manager.add_timer("pay_timer", 1000, self._pay)
+            self.timer_manager.start_timer("pay_timer")
             self.texts['debt'].set_text(str(self.current_debt))
             self.texts['permanent_storage'].set_text(str(self.permanent_storage))
-        else:
-            self.buttons['pay_off'].set_enabled(True)
-
-        if self.current_debt == 0:
-            #self.timer_manager.delay(1000, lambda: self._advance_level())
+        elif self.current_debt == 0:
+            [button.set_enabled(True) for button in self.buttons.values()]
             self._advance_level()
+        else:
+            [button.set_enabled(True) for button in self.buttons.values()]
+
+        
             
 
 
     def _advance_level(self):
-        print("Call")
-
-
         self.timer_manager.delay(0, lambda: self.texts['announcement'].set_visibility(True))
         self.timer_manager.delay(0, lambda: self.texts['announcement'].set_text("DEBT RAISED"))
-        self.timer_manager.delay(2000, lambda: self.texts['announcement'].set_text(str(int(self.last_debt * 1.5))))
-        # Timing is off, something seems to be firing _advance_level function twice
+        self.current_debt = int(self.last_debt * 1.5)
+        self.last_debt = self.current_debt
+        self.texts['debt'].set_text(str(self.current_debt))
+        self.timer_manager.delay(2000, lambda: self.texts['announcement'].set_text(str(self.current_debt)))
         self.timer_manager.delay(2000, lambda: self.announcement_flash.start())
+        self.time_remaining +=  100
 
+
+    def _stop_playing(self):
+        self.playing = False
+
+    def _end_round(self):
+        for button in self.buttons.values():
+            button.set_enabled(False)
+        self.timer_manager.delay(0, lambda: self.texts['announcement'].set_text(""))
+        self.timer_manager.delay(0, lambda: self.texts['announcement'].set_visibility(True))
+        self.timer_manager.delay(2000, lambda: self.texts['announcement'].set_text("GAME"))
+        self.timer_manager.delay(4000, lambda: self.texts['announcement'].set_text("GAME OVER"))
+        self.table.set_data([{
+                    "User": settings.load_settings()['username'],
+                    "Level": self.level,
+                    "Score": self.score,
+                    "Date": self.started_at
+                }])
+        db_handling.insert_row(db_handling.GameSessionModel, {
+                'user_id': db_handling.query_rows(db_handling.UserModel, {"username": settings.load_settings()["username"]})[0].id,
+                'started_at': self.started_at,
+                'score': self.score,
+                'level_reached': self.level
+            })
+        self.timer_manager.delay(6000, lambda: self.table.set_visibility(True))
+        self.timer_manager.delay(10000, lambda: self._stop_playing())
+        
+
+    def _timer(self):
+        if self.time_remaining <= 0:
+            self._end_round()
+        else:
+            self.time_remaining -= 1
+            self.texts['timer'].set_text(str(self.time_remaining))
+            self.timer_manager.delay(1000, self._timer)
 
 
 
@@ -674,7 +826,14 @@ class Game:
             
             # Handle events based on current state
             elif self.state == GameState.MAIN_MENU:
-                self.state = self.main_menu.handle_event(event, mouse_pos)
+                new_state = self.main_menu.handle_event(event, mouse_pos)
+                # Create a fresh PlayScreen when transitioning to PLAY
+
+                if new_state == GameState.PLAY:
+                    self.play = PlayScreen()
+                if new_state == GameState.LEADERBOARD:
+                    self.leaderboard = LeaderboardScreen()
+                self.state = new_state
             elif self.state == GameState.SETTINGS:
                 self.state = self.settings.handle_event(event, mouse_pos)
             elif self.state == GameState.PLAY:

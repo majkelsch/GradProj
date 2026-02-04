@@ -7,7 +7,21 @@ pygame.font.init()
 
 class Button:
     """Universal Button"""
-    def __init__(self, x:int, y:int, width:int, height:int, text:str, font:pygame.font.Font=pygame.font.Font(None, 36), color:tuple=(255,255,255), hover_color:tuple=(0,0,0), bg_color:tuple=(0,0,0), bg_hover_color:tuple=(255,255,255), border_width:int=1, border_radius:int=0, enabled:bool=True):
+    def __init__(self, 
+                x:int, 
+                y:int, 
+                width:int, 
+                height:int, 
+                text:str, 
+                font:pygame.font.Font=pygame.font.Font(None, 36), 
+                color:tuple=(255,255,255), hover_color:tuple=(0,0,0), 
+                bg_color:tuple=(0,0,0), bg_hover_color:tuple=(255,255,255), 
+                border_width:int=1, 
+                border_radius:int=0, 
+                enabled:bool=True, 
+                visible:bool=True
+                ):
+        
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
 
@@ -27,13 +41,17 @@ class Button:
         # State
         self.is_hovered = False
         self.enabled = enabled
+
+        self.visible = visible
         
     def draw(self, screen):
-        bg_color = self.bg_hover_color if self.is_hovered else self.bg_color
+        if not self.visible:
+            return
+        bg_color = self.bg_hover_color if self.is_hovered and self.enabled else self.bg_color
         pygame.draw.rect(screen, bg_color, self.rect, border_radius=self.border_radius)
         pygame.draw.rect(screen, settings.WHITE, self.rect, width=self.border_width, border_radius=self.border_radius)
         
-        color = self.hover_color if self.is_hovered else self.color
+        color = self.hover_color if self.is_hovered and self.enabled else self.color
         text_surface = self.font.render(self.text, True, color)
         text_rect = text_surface.get_rect(center=self.rect.center)
         screen.blit(text_surface, text_rect)
@@ -44,6 +62,11 @@ class Button:
     
     def set_enabled(self, enabled:bool):
         self.enabled = enabled
+
+    def set_visibility(self, visible:bool, enabled:typing.Optional[bool]=None):
+        self.visible = visible
+        if enabled:
+            self.enabled = enabled
 
     def is_clicked(self, pos, event):
         return self.rect.collidepoint(pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 if self.enabled else 0
@@ -56,7 +79,20 @@ class Button:
 
 class Text():
     """Universal Text"""
-    def __init__(self, text:str, x:int, y:int, font:pygame.font.Font=pygame.font.Font(None, 24), color:tuple=(255,255,255), align:str="center", bg_color:typing.Optional[tuple]=None, padding:int=0, alpha:int=255, visible:bool=True, prefix:str = "", suffix:str = ""):
+    def __init__(self, 
+                text:str, 
+                x:int, 
+                y:int, 
+                font:pygame.font.Font=pygame.font.Font(None, 24), 
+                color:tuple=(255,255,255), 
+                align:str="center", 
+                bg_color:typing.Optional[tuple]=None, 
+                padding:int=0, 
+                alpha:int=255, 
+                visible:bool=True, 
+                prefix:str = "", 
+                suffix:str = ""):
+        
         self.prefix = prefix
         self.text = text
         self.suffix = suffix
@@ -146,7 +182,22 @@ class Text():
 
 class Slider:
     """Universal Slider for numeric values"""
-    def __init__(self, x: int, y: int, width: int, height: int, min_val: float = 0, max_val: float = 100, initial_val: float = 50, label: str = "", font: pygame.font.Font = pygame.font.Font(None, 24), color: tuple = (255, 255, 255), bg_color: tuple = (50, 50, 50), handle_color: tuple = (255, 255, 255), handle_hover_color: tuple = (200, 200, 200), suffix:str=""):
+    def __init__(self, 
+                x: int, 
+                y: int, 
+                width: int, 
+                height: int, 
+                min_val: float = 0, 
+                max_val: float = 100, 
+                initial_val: float = 50, 
+                label: str = "", 
+                font: pygame.font.Font = pygame.font.Font(None, 24), 
+                color: tuple = (255, 255, 255), 
+                bg_color: tuple = (50, 50, 50), 
+                handle_color: tuple = (255, 255, 255), 
+                handle_hover_color: tuple = (200, 200, 200), 
+                suffix:str=""):
+        
         self.rect = pygame.Rect(x, y, width, height)
         self.min_val = min_val
         self.max_val = max_val
@@ -264,23 +315,28 @@ class Slider:
 
 class LeaderboardTable:
     """Dynamic scrollable table for displaying leaderboard data"""
-    def __init__(self, x: int, y: int, width: int, height: int, 
-                 columns: list[str], 
-                 font: pygame.font.Font = pygame.font.Font(None, 24),
-                 header_font: pygame.font.Font = pygame.font.Font(None, 28),
-                 header_color: tuple = (255, 255, 255),
-                 text_color: tuple = (200, 200, 200),
-                 bg_color: tuple = (20, 20, 20),
-                 alt_row_color: tuple = (30, 30, 30),
-                 header_bg_color: tuple = (40, 40, 40),
-                 border_color: tuple = (100, 100, 100),
-                 highlight_color: tuple = (60, 60, 60),
-                 scrollbar_color: tuple = (100, 100, 100),
-                 scrollbar_hover_color: tuple = (150, 150, 150),
-                 center_x: bool = False,
-                 center_y: bool = False,
-                 screen_width: int = settings.SCREEN_WIDTH,
-                 screen_height: int = settings.SCREEN_HEIGHT):
+    def __init__(self, 
+                x: int, 
+                y: int, 
+                width: int, 
+                height: int, 
+                columns: list[str], 
+                font: pygame.font.Font = pygame.font.Font(None, 24),
+                header_font: pygame.font.Font = pygame.font.Font(None, 28),
+                header_color: tuple = (255, 255, 255),
+                text_color: tuple = (200, 200, 200),
+                bg_color: tuple = (20, 20, 20),
+                alt_row_color: tuple = (30, 30, 30),
+                header_bg_color: tuple = (40, 40, 40),
+                border_color: tuple = (100, 100, 100),
+                highlight_color: tuple = (60, 60, 60),
+                scrollbar_color: tuple = (100, 100, 100),
+                scrollbar_hover_color: tuple = (150, 150, 150),
+                center_x: bool = False,
+                center_y: bool = False,
+                screen_width: int = settings.SCREEN_WIDTH,
+                screen_height: int = settings.SCREEN_HEIGHT,
+                visible:bool = True):
         
         # Handle centering
         if center_x and screen_width:
@@ -324,6 +380,8 @@ class LeaderboardTable:
         # Hover state
         self.hovered_row = -1
         
+        self.visible = visible
+
     def set_data(self, data: list[dict]):
         """Set the table data. Each dict should have keys matching column names"""
         self.data = data
@@ -446,6 +504,9 @@ class LeaderboardTable:
             self.hovered_row = -1
     
     def draw(self, screen):
+        if not self.visible:
+            return
+
         """Draw the table"""
         # Draw background
         pygame.draw.rect(screen, self.bg_color, self.rect)
@@ -463,8 +524,7 @@ class LeaderboardTable:
     
     def _draw_header(self, screen):
         """Draw table header"""
-        header_rect = pygame.Rect(self.rect.x, self.rect.y, 
-                                   self.rect.width, self.header_height)
+        header_rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, self.header_height)
         pygame.draw.rect(screen, self.header_bg_color, header_rect)
         
         column_widths = self.get_column_widths()
@@ -484,9 +544,7 @@ class LeaderboardTable:
     def _draw_rows(self, screen):
         """Draw data rows"""
         column_widths = self.get_column_widths()
-        visible_area = pygame.Rect(self.rect.x, self.rect.y + self.header_height,
-                                   self.rect.width, 
-                                   self.rect.height - self.header_height)
+        visible_area = pygame.Rect(self.rect.x, self.rect.y + self.header_height, self.rect.width, self.rect.height - self.header_height)
         
         # Set clipping to prevent drawing outside table
         original_clip = screen.get_clip()
@@ -500,8 +558,7 @@ class LeaderboardTable:
             y_pos = self.rect.y + self.header_height + ((i - self.scroll_offset) * self.row_height)
             
             # Draw row background
-            row_rect = pygame.Rect(self.rect.x, y_pos, 
-                                  self.rect.width, self.row_height)
+            row_rect = pygame.Rect(self.rect.x, y_pos, self.rect.width, self.row_height)
             
             if i == self.hovered_row:
                 bg_color = self.highlight_color
@@ -535,6 +592,9 @@ class LeaderboardTable:
         if handle_rect:
             color = self.scrollbar_hover_color if (self.scrollbar_hover or self.scrollbar_dragging) else self.scrollbar_color
             pygame.draw.rect(screen, color, handle_rect, border_radius=5)
+
+    def set_visibility(self, visible:bool):
+        self.visible = visible
 
 
 
@@ -578,7 +638,8 @@ class Timer:
         """Resume a paused timer"""
         if self.is_paused:
             pause_duration = pygame.time.get_ticks() - self.pause_time
-            self.start_time += pause_duration
+            if self.start_time:
+                self.start_time += pause_duration
             self.is_paused = False
     
     def update(self):
@@ -586,19 +647,20 @@ class Timer:
         if not self.is_active or self.is_paused:
             return False
             
-        elapsed = pygame.time.get_ticks() - self.start_time
+        if self.start_time:
+            elapsed = pygame.time.get_ticks() - self.start_time
         
-        if elapsed >= self.duration:
-            # Timer completed
-            if self.callback:
-                self.callback()
-            
-            if self.repeat:
-                self.start()  # Restart
-            else:
-                self.is_active = False
+            if elapsed >= self.duration:
+                # Timer completed
+                if self.callback:
+                    self.callback()
                 
-            return True  # Timer completed this frame
+                if self.repeat:
+                    self.start()  # Restart
+                else:
+                    self.is_active = False
+                    
+                return True  # Timer completed this frame
         
         return False
     
@@ -728,3 +790,195 @@ class TimerSequence:
         self.is_active = False
         if self.current_timer:
             self.current_timer.stop()
+
+
+
+class InputField:
+    """Universal text input field"""
+    def __init__(self, x: int, y: int, width: int, height: int = 40,
+                placeholder: str = "",
+                font: pygame.font.Font = pygame.font.Font(None, 24),
+                text_color: tuple = (255, 255, 255),
+                placeholder_color: tuple = (128, 128, 128),
+                bg_color: tuple = (30, 30, 30),
+                active_bg_color: tuple = (40, 40, 40),
+                border_color: tuple = (100, 100, 100),
+                active_border_color: tuple = (255, 255, 255),
+                border_width: int = 2,
+                border_radius: int = 5,
+                padding: int = 10,
+                max_length: int = 50,
+                password: bool = False):
+        """
+        Args:
+            x, y: Position
+            width, height: Dimensions
+            placeholder: Text shown when field is empty
+            font: Font for text
+            text_color: Color of input text
+            placeholder_color: Color of placeholder text
+            bg_color: Background color when inactive
+            active_bg_color: Background color when active
+            border_color: Border color when inactive
+            active_border_color: Border color when active
+            border_width: Width of border
+            border_radius: Radius for rounded corners
+            padding: Internal padding
+            max_length: Maximum character length
+            password: If True, display asterisks instead of text
+        """
+        self.rect = pygame.Rect(x, y, width, height)
+        self.placeholder = placeholder
+        self.font = font
+        
+        # Colors
+        self.text_color = text_color
+        self.placeholder_color = placeholder_color
+        self.bg_color = bg_color
+        self.active_bg_color = active_bg_color
+        self.border_color = border_color
+        self.active_border_color = active_border_color
+        
+        # Style
+        self.border_width = border_width
+        self.border_radius = border_radius
+        self.padding = padding
+        
+        # Text handling
+        self.text = ""
+        self.max_length = max_length
+        self.password = password
+        
+        # State
+        self.active = False
+        self.cursor_visible = True
+        self.cursor_timer = 0
+        self.cursor_blink_speed = 500  # milliseconds
+        self.last_blink = pygame.time.get_ticks()
+        
+        # Text offset for scrolling long text
+        self.text_offset = 0
+        
+    def handle_event(self, event):
+        """Handle keyboard and mouse events"""
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if clicked inside or outside
+            self.active = self.rect.collidepoint(event.pos)
+            if self.active:
+                self.cursor_visible = True
+                self.last_blink = pygame.time.get_ticks()
+        
+        if self.active and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                # Enter key - deactivate field
+                self.active = False
+                return "submit"
+            elif event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+                self._update_text_offset()
+            elif event.key == pygame.K_TAB:
+                # Tab key - could be used to switch between fields
+                return "tab"
+            elif len(self.text) < self.max_length:
+                # Add character
+                self.text += event.unicode
+                self._update_text_offset()
+        
+        return None
+    
+    def _update_text_offset(self):
+        """Update text offset for horizontal scrolling"""
+        display_text = "*" * len(self.text) if self.password else self.text
+        text_surface = self.font.render(display_text, True, self.text_color)
+        text_width = text_surface.get_width()
+        
+        available_width = self.rect.width - (self.padding * 2)
+        
+        if text_width > available_width:
+            self.text_offset = text_width - available_width
+        else:
+            self.text_offset = 0
+    
+    def update(self):
+        """Update cursor blinking"""
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_blink > self.cursor_blink_speed:
+            self.cursor_visible = not self.cursor_visible
+            self.last_blink = current_time
+    
+    def draw(self, screen):
+        """Draw the input field"""
+        # Draw background
+        bg_col = self.active_bg_color if self.active else self.bg_color
+        pygame.draw.rect(screen, bg_col, self.rect, border_radius=self.border_radius)
+        
+        # Draw border
+        border_col = self.active_border_color if self.active else self.border_color
+        pygame.draw.rect(screen, border_col, self.rect, 
+                        width=self.border_width, border_radius=self.border_radius)
+        
+        # Prepare text to display
+        if self.text:
+            display_text = "*" * len(self.text) if self.password else self.text
+            text_surface = self.font.render(display_text, True, self.text_color)
+        else:
+            # Show placeholder
+            text_surface = self.font.render(self.placeholder, True, self.placeholder_color)
+        
+        # Create clipping rectangle for text
+        text_area = pygame.Rect(
+            self.rect.x + self.padding,
+            self.rect.y,
+            self.rect.width - (self.padding * 2),
+            self.rect.height
+        )
+        
+        # Set clip and draw text
+        original_clip = screen.get_clip()
+        screen.set_clip(text_area)
+        
+        text_rect = text_surface.get_rect(
+            midleft=(self.rect.x + self.padding - self.text_offset, self.rect.centery)
+        )
+        screen.blit(text_surface, text_rect)
+        
+        # Draw cursor if active
+        if self.active and self.cursor_visible and self.text:
+            cursor_x = text_rect.right + 2
+            cursor_y_top = self.rect.centery - (self.font.get_height() // 2)
+            cursor_y_bottom = self.rect.centery + (self.font.get_height() // 2)
+            pygame.draw.line(screen, self.text_color, (cursor_x, cursor_y_top), (cursor_x, cursor_y_bottom), 2)
+        elif self.active and self.cursor_visible and not self.text:
+            # Draw cursor at start if no text
+            cursor_x = self.rect.x + self.padding
+            cursor_y_top = self.rect.centery - (self.font.get_height() // 2)
+            cursor_y_bottom = self.rect.centery + (self.font.get_height() // 2)
+            pygame.draw.line(screen, self.text_color, (cursor_x, cursor_y_top), (cursor_x, cursor_y_bottom), 2)
+        
+        # Restore original clip
+        screen.set_clip(original_clip)
+    
+    def get_text(self):
+        """Get the current text"""
+        return self.text
+    
+    def set_text(self, text: str):
+        """Set the text programmatically"""
+        self.text = text[:self.max_length]
+        self._update_text_offset()
+    
+    def clear(self):
+        """Clear the input field"""
+        self.text = ""
+        self.text_offset = 0
+    
+    def is_active(self):
+        """Check if field is currently active"""
+        return self.active
+    
+    def set_active(self, active: bool):
+        """Set active state"""
+        self.active = active
+        if active:
+            self.cursor_visible = True
+            self.last_blink = pygame.time.get_ticks()

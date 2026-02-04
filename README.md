@@ -20,8 +20,8 @@ Po splacení "úrovně" dluhu hráč postupuje na další úroveň. Pokud se hr�
 - \*\*\*V plánu jsou nějaké hrozby, které by mohly body krást, nebo hru rovnou ukončit.
 
 # Plány
-- [ ] Postoupení na další úroveň
-- [ ] Nekonečno úrovní
+- [x] Postoupení na další úroveň
+- [x] Nekonečno úrovní
 - [ ] Multipliery podle Temporary bodů (více Temporary bodů = vyšší odměny)
 - [ ] Efekty/Efektory (zvýšení rozsahu, dvojnásobná odměna, pomoc při odhadu, atd.)
 - [ ] Pokusy o přesný odhad pro vyšší odměnu

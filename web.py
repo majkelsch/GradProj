@@ -46,7 +46,7 @@ def login():
             return redirect('/')
         else:
             return "Invalid credentials", 401
-    return render_template('login.html')
+    return render_template('login.html', user=current_user)
 
 
 @app.route('/logout')
