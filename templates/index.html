@@ -7,9 +7,9 @@
     <title>GradProj</title>
 
 </head>
-<body>
+<body data-theme="{{ user.prefered_scheme if user else 'light' }}">
     {% include 'universal/header.html' %}
-    <div class="hero">
+    <div class="hero full-height">
         <h1>Welcome to GradProj</h1>
         <p>This is the main page of the GradProj application.</p>
     </div>

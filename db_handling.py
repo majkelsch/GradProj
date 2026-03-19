@@ -26,6 +26,9 @@ class User(TypedDict):
     username: str
     email: str
     created_at: datetime.datetime
+    prefered_scheme: Optional[str]
+    role: Optional[str]
+    
 
     game_sessions: Optional[list['GameSession']]
 
@@ -60,6 +63,8 @@ class UserModel(Base, UserMixin):
     email = mapped_column(String, unique=True, nullable=False)
     created_at = mapped_column(DateTime, default=datetime.datetime.now())
     game_sessions = relationship('GameSessionModel', back_populates='user')
+    prefered_scheme = mapped_column(String, nullable=True)
+    role = mapped_column(String, nullable=True)
 
     def set_password(self, password, persist: bool = True):
         self.password_hash = generate_password_hash(password)

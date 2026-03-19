@@ -42,7 +42,9 @@ def generate_mockup_data(num_users: int = 10, sessions_per_user: int = 5):
             'username': username,
             'email': email,
             'created_at': created_at,
-            'password_hash': generate_password_hash('testpass123')
+            'password_hash': generate_password_hash('testpass123'),
+            'prefered_scheme': random.choice(['light', 'dark']),
+            'role': "user"
         }
         
         try:
