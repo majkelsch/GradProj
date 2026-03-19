@@ -4,6 +4,7 @@ import typing
 import random
 
 pygame.font.init()
+pygame.mixer.init()
 
 class Button:
     """Universal Button"""
@@ -617,6 +618,7 @@ class Timer:
         self.is_paused = False
         self.pause_time = 0
         
+        
     def start(self):
         """Start or restart the timer"""
         self.start_time = pygame.time.get_ticks()
@@ -860,30 +862,27 @@ class InputField:
         self.text_offset = 0
         
     def handle_event(self, event):
-        """Handle keyboard and mouse events"""
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # Check if clicked inside or outside
             self.active = self.rect.collidepoint(event.pos)
             if self.active:
                 self.cursor_visible = True
                 self.last_blink = pygame.time.get_ticks()
-        
-        if self.active and event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                # Enter key - deactivate field
-                self.active = False
-                return "submit"
-            elif event.key == pygame.K_BACKSPACE:
-                self.text = self.text[:-1]
-                self._update_text_offset()
-            elif event.key == pygame.K_TAB:
-                # Tab key - could be used to switch between fields
-                return "tab"
-            elif len(self.text) < self.max_length:
-                # Add character
-                self.text += event.unicode
-                self._update_text_offset()
-        
+        if self.active:
+            if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                    self.active = False
+                    return "submit"
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                    self._update_text_offset()
+                elif event.key == pygame.K_TAB:
+                    return "tab"
+
+            elif event.type == pygame.TEXTINPUT:
+                if len(self.text) < self.max_length:
+                    self.text += event.text
+                    self._update_text_offset()
+
         return None
     
     def _update_text_offset(self):

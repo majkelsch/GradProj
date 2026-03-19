@@ -13,6 +13,7 @@ from db_handling import UserModel as User
 
 # Initialize Pygame
 pygame.init()
+pygame.mixer.init()
 
 
 
@@ -34,7 +35,9 @@ class GameState(Enum):
 #
 class IntroScreen:
     """INTRO STATE"""
-    def __init__(self):
+    def __init__(self, set_state):
+        self.set_state = set_state
+
         self.alpha = 0
         self.fade_speed = 3
         self.display_time = 0
@@ -73,8 +76,8 @@ class IntroScreen:
         self.display_time += 1
         
         if self.display_time >= self.max_display_time:
-            return GameState.MAIN_MENU
-        return GameState.INTRO
+            self.set_state(GameState.MAIN_MENU)
+        self.set_state(GameState.INTRO)
     
     def draw(self, screen):
         screen.fill(settings.BLACK)
@@ -109,9 +112,13 @@ class IntroScreen:
 #
 #   MAIN MENU STATE
 #
-class MainMenuScreen:
+class MainMenuScreen():
     """MAIN MENU STATE"""
-    def __init__(self):
+    def __init__(self, set_state):
+        self.set_state = set_state
+        self.tm = objects.TimerManager()
+
+        pygame.mixer.music.set_volume(settings.load_settings()["volume"])
         button_width = 300
         button_height = 60
         button_x = (settings.SCREEN_WIDTH - button_width) // 2
@@ -201,14 +208,24 @@ class MainMenuScreen:
     def handle_event(self, event, mouse_pos):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.buttons['play'].is_clicked(mouse_pos, event):
-                return GameState.PLAY
+                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
+                pygame.mixer.music.play()
+                self.set_state(GameState.PLAY)
+
             elif self.buttons['settings'].is_clicked(mouse_pos, event):
-                return GameState.SETTINGS
+                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
+                pygame.mixer.music.play()
+                self.set_state(GameState.SETTINGS)
+
             elif self.buttons['leaderboard'].is_clicked(mouse_pos, event):
-                return GameState.LEADERBOARD
+                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
+                pygame.mixer.music.play()
+                self.set_state(GameState.LEADERBOARD)
+
             elif self.buttons['quit'].is_clicked(mouse_pos, event):
-                return GameState.QUIT
-        return GameState.MAIN_MENU
+                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
+                pygame.mixer.music.play()
+                self.tm.delay(250, lambda: self.set_state(GameState.QUIT))
     
     def draw(self, screen, mouse_pos):
         screen.fill(settings.BLACK)
@@ -224,6 +241,11 @@ class MainMenuScreen:
             self.texts['user'].set_text(settings.load_settings()["username"])
         else:
             self.texts['user'].set_text("Anonymous")
+
+    def update(self):
+        self.tm.update_all()
+
+    
 
 
 
@@ -248,7 +270,9 @@ class MainMenuScreen:
 #
 class SettingsScreen:
     """Handles the settings screen"""
-    def __init__(self):
+    def __init__(self, set_state):
+        self.set_state = set_state
+
 
         self.texts = {
             'title': objects.Text(
@@ -293,7 +317,8 @@ class SettingsScreen:
             width=300, 
             height=40,
             placeholder="Username",
-            max_length=128
+            max_length=128,
+            border_radius=0
         )
         self.password_input = objects.InputField(
             x=settings.SCREEN_WIDTH//2, 
@@ -302,36 +327,40 @@ class SettingsScreen:
             height=40,
             placeholder="Password",
             max_length=128,
-            password=True
+            password=True,
+            border_radius=0
         )
     
     def handle_event(self, event, mouse_pos):
-        self.volume_slider.handle_event(event, mouse_pos)
+        #self.volume_slider.handle_event(event, mouse_pos)
         if self.buttons['back'].is_clicked(mouse_pos, event):
-            return GameState.MAIN_MENU
+            pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
+            pygame.mixer.music.play()     
+            self.set_state(GameState.MAIN_MENU)
         
-        settings.save_setting("volume", self.volume_slider.get_value())
+        #settings.save_setting("volume", self.volume_slider.get_value())
 
         username = self.username_input.handle_event(event)
         password = self.password_input.handle_event(event)
-        if (username or password) == "submit" or self.buttons['login'].is_clicked(mouse_pos, event):
+        if username == "submit" or self.buttons['login'].is_clicked(mouse_pos, event):
             user = db_handling.query_rows(db_handling.UserModel, {'username': self.username_input.get_text()})
             user = user[0] if user else None
             if user and user.check_password(self.password_input.get_text()):
                 settings.save_setting("username", self.username_input.get_text())
                 settings.save_setting("password", self.password_input.get_text())
                 settings.save_setting("logged_in", True)
+                pygame.mixer.music.load("assets/sfx/success-sfx.mp3")
+                pygame.mixer.music.play()
                 self.username_input.clear()
                 self.password_input.clear()
             else:
-                print("ERR")
+                pygame.mixer.music.load("assets/sfx/failure-sfx.mp3")
+                pygame.mixer.music.play()
 
         if self.buttons['logout'].is_clicked(mouse_pos, event):
             settings.save_setting("username", "Anonymous")
             settings.save_setting("password", "")
             settings.save_setting("logged_in", False)
-        
-        return GameState.SETTINGS
     
     def draw(self, screen, mouse_pos):
         screen.fill(settings.BLACK)
@@ -342,7 +371,7 @@ class SettingsScreen:
         for button in self.buttons.values():
             button.check_hover(mouse_pos)
             button.draw(screen)
-
+        
         if settings.load_settings()["logged_in"]:
             self.buttons['logout'].set_visibility(True, True)
             self.buttons['login'].set_visibility(False, False)
@@ -377,7 +406,9 @@ class SettingsScreen:
 #
 class PlayScreen:
     """GAME STATE"""
-    def __init__(self):
+    def __init__(self, set_state):
+        self.set_state = set_state
+
         self.playing = True
 
 
@@ -555,7 +586,7 @@ class PlayScreen:
                 self._transfer()
             elif self.buttons['pay_off'].is_clicked(mouse_pos, event):
                 self._pay()
-        return GameState.PLAY
+        self.set_state(GameState.PLAY)
     
     def draw(self, screen, mouse_pos):
         screen.fill(settings.BLACK)
@@ -578,9 +609,9 @@ class PlayScreen:
 
         if self.playing != True:
             self.playing = True
-            return GameState.MAIN_MENU
+            self.set_state(GameState.MAIN_MENU)
         
-        return GameState.PLAY
+        self.set_state(GameState.PLAY)
 
 
     # GAME FUNCTIONS
@@ -728,7 +759,11 @@ class PlayScreen:
 #
 class LeaderboardScreen:
     """Handles the leaderboard screen"""
-    def __init__(self):
+    def __init__(self, set_state):
+        self.set_state = set_state
+
+
+
         self.back_button = objects.Button(50, settings.SCREEN_HEIGHT - 80, 150, 50, "BACK", color=(255,255,255), hover_color=(0,0,0))
         self.table = objects.LeaderboardTable(x=settings.SCREEN_WIDTH//2, y=settings.SCREEN_HEIGHT//2, width=int(settings.SCREEN_WIDTH*0.8), height=400, columns=["Rank", "User", "Level", "Score", "Date"], center_x=True, center_y=True)
         unsorted_data = db_handling.query_rows(db_handling.GameSessionModel, include=['user'])
@@ -764,8 +799,7 @@ class LeaderboardScreen:
     def handle_event(self, event, mouse_pos):
         self.table.handle_event(event, mouse_pos)
         if self.back_button.is_clicked(mouse_pos, event):
-            return GameState.MAIN_MENU
-        return GameState.LEADERBOARD
+            self.set_state(GameState.MAIN_MENU)
     
     def draw(self, screen, mouse_pos):
         screen.fill(settings.BLACK)
@@ -807,16 +841,26 @@ class Game:
         pygame.display.set_caption(settings.GAME_TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
+
+        
+
+        
         
         # Initialize screens
-        self.intro = IntroScreen()
-        self.main_menu = MainMenuScreen()
-        self.settings = SettingsScreen()
-        self.play = PlayScreen()
-        self.leaderboard = LeaderboardScreen()
-        
-        # Start with intro
+        self.intro = IntroScreen(set_state=self._set_state)
+        self.main_menu = MainMenuScreen(set_state=self._set_state)
+        self.settings = SettingsScreen(set_state=self._set_state)
+        self.play = PlayScreen(set_state=self._set_state)
+        self.leaderboard = LeaderboardScreen(set_state=self._set_state)
+
+        # Start with Intro
         self.state = GameState.INTRO
+        
+        
+    def _set_state(self, new_state: GameState):
+        self.state = new_state
+
+        
     
     def handle_events(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -827,8 +871,7 @@ class Game:
                 return
             
             
-            
-            if self.state == GameState.INTRO and (event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN):
+            if self.state == GameState.INTRO and event.type in [pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN]:
                 self.state = GameState.MAIN_MENU
             
             if event.type == pygame.KEYDOWN:
@@ -837,20 +880,23 @@ class Game:
             
             # Handle events based on current state
             elif self.state == GameState.MAIN_MENU:
-                new_state = self.main_menu.handle_event(event, mouse_pos)
+                self.main_menu.handle_event(event, mouse_pos)
+                #new_state = self.main_menu.handle_event(event, mouse_pos)
                 # Create a fresh PlayScreen when transitioning to PLAY
+                #if new_state == GameState.PLAY:
+                #    self.play = PlayScreen()
+                #if new_state == GameState.LEADERBOARD:
+                #    self.leaderboard = LeaderboardScreen()
+                #self.state = new_state
 
-                if new_state == GameState.PLAY:
-                    self.play = PlayScreen()
-                if new_state == GameState.LEADERBOARD:
-                    self.leaderboard = LeaderboardScreen()
-                self.state = new_state
             elif self.state == GameState.SETTINGS:
-                self.state = self.settings.handle_event(event, mouse_pos)
+                self.settings.handle_event(event, mouse_pos)
+
             elif self.state == GameState.PLAY:
-                self.state = self.play.handle_event(event, mouse_pos)
+                self.play.handle_event(event, mouse_pos)
+
             elif self.state == GameState.LEADERBOARD:
-                self.state = self.leaderboard.handle_event(event, mouse_pos)
+                self.leaderboard.handle_event(event, mouse_pos)
             
             # QUIT STATE
             if self.state == GameState.QUIT:
@@ -858,9 +904,11 @@ class Game:
     
     def update(self):
         if self.state == GameState.INTRO:
-            self.state = self.intro.update()
+            self.intro.update()
+        elif self.state == GameState.MAIN_MENU:
+            self.main_menu.update()
         elif self.state == GameState.PLAY:
-            self.state = self.play.update()
+            self.play.update()
     
     def draw(self):
         mouse_pos = pygame.mouse.get_pos()

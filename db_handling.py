@@ -17,8 +17,7 @@ Base = declarative_base()
 def session_init():
     engine = create_engine(DATABASE_URL)
     Session = sessionmaker(bind=engine)
-    session = Session()
-    return session
+    return Session()
 
 
 class User(TypedDict):
@@ -84,6 +83,8 @@ class UserModel(Base, UserMixin):
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', email='{self.email}', created_at='{self.created_at}')>"
+    
+    
 
 class GameSessionModel(Base):
     __tablename__ = 'game_sessions'
