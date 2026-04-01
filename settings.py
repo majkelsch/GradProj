@@ -19,10 +19,6 @@ DARK_BLUE = (50, 100, 200)
 
 
 
-# Vars
-volume = 0.5
-
-
 def load_settings():
     with open("user_settings.json", "r") as f:
         return json.load(f)

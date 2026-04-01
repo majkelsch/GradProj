@@ -15,7 +15,6 @@ Base = declarative_base()
 
 
 def session_init():
-    engine = create_engine(DATABASE_URL)
     Session = sessionmaker(bind=engine)
     return Session()
 

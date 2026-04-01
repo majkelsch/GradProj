@@ -860,6 +860,8 @@ class InputField:
         
         # Text offset for scrolling long text
         self.text_offset = 0
+
+        self.visible = True
         
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -907,6 +909,9 @@ class InputField:
     
     def draw(self, screen):
         """Draw the input field"""
+        if not self.visible:
+            return
+
         # Draw background
         bg_col = self.active_bg_color if self.active else self.bg_color
         pygame.draw.rect(screen, bg_col, self.rect, border_radius=self.border_radius)
@@ -981,3 +986,6 @@ class InputField:
         if active:
             self.cursor_visible = True
             self.last_blink = pygame.time.get_ticks()
+
+    def set_visibility(self, visible:bool):
+        self.visible = visible

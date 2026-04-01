@@ -17,6 +17,38 @@ pygame.mixer.init()
 
 
 
+def play_sound(sound):
+    try:
+        sfx = pygame.mixer.Sound(f"assets/sfx/{sound}.mp3")
+        sfx.set_volume(settings.load_settings()['volume-sfx'])
+        sfx.play()
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def play_music(music:str, loops:int=-1, fade_ms:int=0):
+    """Play music
+
+    Args:
+        music (str): music filename to play
+        loops (int, optional): Number of loops to play. Defaults to -1 (inf).
+        fade_ms (int, optional): !!!. Defaults to 0 (ms).
+    """
+    try:
+        if music:
+            pygame.mixer.music.load(f"assets/music/{music}.mp3")
+            pygame.mixer.music.set_volume(settings.load_settings()['volume-music'])
+            pygame.mixer.music.play(loops=loops, fade_ms=fade_ms)
+    except Exception as e:
+        print(f"Error: {e}")
+
+def change_volume(group, volume):
+    if group == "music":
+        pygame.mixer.music.set_volume(volume)
+    settings.save_setting(f"volume-{group}", volume)
+
+
+
 
 # Game states
 class GameState(Enum):
@@ -77,7 +109,6 @@ class IntroScreen:
         
         if self.display_time >= self.max_display_time:
             self.set_state(GameState.MAIN_MENU)
-        self.set_state(GameState.INTRO)
     
     def draw(self, screen):
         screen.fill(settings.BLACK)
@@ -118,12 +149,13 @@ class MainMenuScreen():
         self.set_state = set_state
         self.tm = objects.TimerManager()
 
-        pygame.mixer.music.set_volume(settings.load_settings()["volume"])
         button_width = 300
         button_height = 60
         button_x = (settings.SCREEN_WIDTH - button_width) // 2
         start_y = 200
         spacing = 80
+
+    
         
         self.buttons = {
             'play': objects.Button(
@@ -194,7 +226,7 @@ class MainMenuScreen():
                 align="bottomright"
             ),
             'user': objects.Text(
-                text="Anonymous (Settings)",
+                text=self.check_login_status(),
                 prefix="Logged in as: ",
                 font=pygame.font.Font(None, 24),
                 x=settings.SCREEN_WIDTH//2,
@@ -204,27 +236,29 @@ class MainMenuScreen():
             )
         }
 
+    def check_login_status(self):
+        if settings.load_settings()["logged_in"]:
+            return settings.load_settings()["username"]
+        else:
+            return "Anonymous"
 
     def handle_event(self, event, mouse_pos):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.buttons['play'].is_clicked(mouse_pos, event):
-                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
-                pygame.mixer.music.play()
+                play_sound("click-sfx")
+                play_music("play")
                 self.set_state(GameState.PLAY)
 
             elif self.buttons['settings'].is_clicked(mouse_pos, event):
-                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
-                pygame.mixer.music.play()
+                play_sound("click-sfx")
                 self.set_state(GameState.SETTINGS)
 
             elif self.buttons['leaderboard'].is_clicked(mouse_pos, event):
-                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
-                pygame.mixer.music.play()
+                play_sound("click-sfx")
                 self.set_state(GameState.LEADERBOARD)
 
             elif self.buttons['quit'].is_clicked(mouse_pos, event):
-                pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
-                pygame.mixer.music.play()
+                play_sound("click-sfx")
                 self.tm.delay(250, lambda: self.set_state(GameState.QUIT))
     
     def draw(self, screen, mouse_pos):
@@ -236,11 +270,6 @@ class MainMenuScreen():
 
         for text in self.texts.values():
             text.draw(screen)
-
-        if settings.load_settings()["logged_in"]:
-            self.texts['user'].set_text(settings.load_settings()["username"])
-        else:
-            self.texts['user'].set_text("Anonymous")
 
     def update(self):
         self.tm.update_all()
@@ -273,43 +302,13 @@ class SettingsScreen:
     def __init__(self, set_state):
         self.set_state = set_state
 
-
-        self.texts = {
-            'title': objects.Text(
-                text="SETTINGS",
-                font=pygame.font.Font(None, 74),
-                x=settings.SCREEN_WIDTH // 2,
-                y=100,
-                color=(255,255,255),
-                align="center"
-            )
-        }
+        self.timer_manager = objects.TimerManager()
 
         self.buttons = {
             "back": objects.Button(50, settings.SCREEN_HEIGHT - 80, 150, 50, "BACK", color=(255,255,255), hover_color=(0,0,0)),
             "login": objects.Button(settings.SCREEN_WIDTH//2+300, settings.SCREEN_HEIGHT-40, 150, 40, "Login", color=(255,255,255), hover_color=(0,0,0)),
-            "logout": objects.Button(settings.SCREEN_WIDTH//2-75, settings.SCREEN_HEIGHT-40, 150, 40, "Logout", color=(255,255,255), hover_color=(0,0,0))
-
+            "logout": objects.Button(settings.SCREEN_WIDTH//2-75, settings.SCREEN_HEIGHT-40, 150, 40, "Logout", color=(255,255,255), hover_color=(0,0,0), enabled=False)
         }
-
-
-        self.volume_slider = objects.Slider(
-            x=settings.SCREEN_WIDTH // 2 - 150,
-            y=250,
-            width=300,
-            height=10,
-            min_val=0,
-            max_val=100,
-            initial_val=settings.load_settings()['volume'],
-            label="Volume (WIP)",
-            suffix=" %",
-            font=pygame.font.Font(None, 24),
-            color=(255, 255, 255),
-            bg_color=(50, 50, 50),
-            handle_color=(255, 255, 255),
-            handle_hover_color=(200, 200, 200)
-        )
-
 
         self.username_input = objects.InputField(
             x=settings.SCREEN_WIDTH//2-300, 
@@ -330,15 +329,99 @@ class SettingsScreen:
             password=True,
             border_radius=0
         )
+
+        self.check_login_status()
+
+
+
+
+        self.texts = {
+            'title': objects.Text(
+                text="SETTINGS",
+                font=pygame.font.Font(None, 74),
+                x=settings.SCREEN_WIDTH // 2,
+                y=100,
+                color=(255,255,255),
+                align="center"
+            ),
+            'announcement': objects.Text(
+                text="TEST",
+                x=settings.SCREEN_WIDTH//2,
+                y=settings.SCREEN_HEIGHT//2,
+                font=pygame.font.Font(None, 36),
+                bg_color=(0,0,0, 196),
+                padding=settings.SCREEN_WIDTH,
+                visible=False
+            )
+        }
+
+        
+        initial_settings = settings.load_settings()
+
+
+        self.sliders = {
+            "volume_music_slider": objects.Slider(
+                x=settings.SCREEN_WIDTH // 2 - 150,
+                y=250,
+                width=300,
+                height=10,
+                min_val=0,
+                max_val=100,
+                initial_val=initial_settings['volume-music']*100,
+                label="Music Volume",
+                suffix=" %",
+                font=pygame.font.Font(None, 24),
+                color=(255, 255, 255),
+                bg_color=(50, 50, 50),
+                handle_color=(255, 255, 255),
+                handle_hover_color=(200, 200, 200)
+            ),
+            "volume_sfx_slider": objects.Slider(
+                x=settings.SCREEN_WIDTH // 2 - 150,
+                y=300,
+                width=300,
+                height=10,
+                min_val=0,
+                max_val=100,
+                initial_val=initial_settings['volume-sfx']*100,
+                label="Sound Effects Volume",
+                suffix=" %",
+                font=pygame.font.Font(None, 24),
+                color=(255, 255, 255),
+                bg_color=(50, 50, 50),
+                handle_color=(255, 255, 255),
+                handle_hover_color=(200, 200, 200)
+            )
+        }
+    
+
+    def check_login_status(self):
+            # Check login status on init
+            if settings.load_settings()["logged_in"]:
+                self.buttons['logout'].set_visibility(True, True)
+                self.buttons['login'].set_visibility(False, False)
+                self.username_input.set_visibility(False)
+                self.password_input.set_visibility(False)
+            else:
+                self.buttons['login'].set_visibility(True, True)
+                self.buttons['logout'].set_visibility(False, False)
+                self.username_input.set_visibility(True)
+                self.password_input.set_visibility(True)
+            
+        
     
     def handle_event(self, event, mouse_pos):
-        #self.volume_slider.handle_event(event, mouse_pos)
+        for slider in self.sliders.values():
+            slider.handle_event(event, mouse_pos)
+
         if self.buttons['back'].is_clicked(mouse_pos, event):
-            pygame.mixer.music.load("assets/sfx/click-sfx.mp3")
-            pygame.mixer.music.play()     
+            play_sound("click-sfx")  
             self.set_state(GameState.MAIN_MENU)
         
-        #settings.save_setting("volume", self.volume_slider.get_value())
+        if self.sliders['volume_music_slider'].dragging:
+            change_volume(group="music", volume=self.sliders['volume_music_slider'].get_value()/100)
+        elif self.sliders['volume_sfx_slider'].dragging:
+            change_volume(group="sfx", volume=self.sliders['volume_sfx_slider'].get_value()/100)
 
         username = self.username_input.handle_event(event)
         password = self.password_input.handle_event(event)
@@ -349,43 +432,48 @@ class SettingsScreen:
                 settings.save_setting("username", self.username_input.get_text())
                 settings.save_setting("password", self.password_input.get_text())
                 settings.save_setting("logged_in", True)
-                pygame.mixer.music.load("assets/sfx/success-sfx.mp3")
-                pygame.mixer.music.play()
+                play_sound("success-sfx")
                 self.username_input.clear()
                 self.password_input.clear()
+                self.timer_manager.delay(0, lambda: self.texts['announcement'].set_visibility(True))
+                self.timer_manager.delay(0, lambda: self.texts['announcement'].set_text("Successfully logged in, please restart the game"))
+                self.timer_manager.delay(2500, lambda: self.texts['announcement'].set_visibility(False))
+                self.check_login_status()
             else:
-                pygame.mixer.music.load("assets/sfx/failure-sfx.mp3")
-                pygame.mixer.music.play()
+                play_sound("failure-sfx")
 
         if self.buttons['logout'].is_clicked(mouse_pos, event):
             settings.save_setting("username", "Anonymous")
             settings.save_setting("password", "")
             settings.save_setting("logged_in", False)
+            play_sound("success-sfx")
+            self.timer_manager.delay(0, lambda: self.texts['announcement'].set_visibility(True))
+            self.timer_manager.delay(0, lambda: self.texts['announcement'].set_text("Successfully logged out, please restart the game"))
+            self.timer_manager.delay(2500, lambda: self.texts['announcement'].set_visibility(False))
+            self.check_login_status()
+            
+            
     
     def draw(self, screen, mouse_pos):
         screen.fill(settings.BLACK)
         
-        self.volume_slider.check_hover(mouse_pos)
-        self.volume_slider.draw(screen)
+        for slider in self.sliders.values():
+            slider.check_hover(mouse_pos)
+            slider.draw(screen)
 
         for button in self.buttons.values():
             button.check_hover(mouse_pos)
             button.draw(screen)
         
-        if settings.load_settings()["logged_in"]:
-            self.buttons['logout'].set_visibility(True, True)
-            self.buttons['login'].set_visibility(False, False)
-        else:
-            self.buttons['login'].set_visibility(True, True)
-            self.buttons['logout'].set_visibility(False, False)
-            self.username_input.draw(screen)
-            self.password_input.draw(screen)
+        self.username_input.draw(screen)
+        self.password_input.draw(screen)
 
 
         for text in self.texts.values():
             text.draw(screen)
 
     def update(self):
+        self.timer_manager.update_all()
         self.username_input.update()
         self.password_input.update()
 
@@ -410,6 +498,7 @@ class PlayScreen:
         self.set_state = set_state
 
         self.playing = True
+        
 
 
         self.clue = None
@@ -504,7 +593,8 @@ class PlayScreen:
                     x=settings.SCREEN_WIDTH,
                     y=24,
                     font=pygame.font.Font(None, 24),
-                    align="topright"
+                    align="topright",
+                    suffix="/5"
                 )
 
         }
@@ -576,6 +666,7 @@ class PlayScreen:
     def handle_event(self, event, mouse_pos):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.buttons['start'].is_clicked(mouse_pos, event):
+                play_sound("click-sfx")
                 self.buttons['start'].set_enabled(False)
                 self._generate_numbers()
             elif self.buttons['greater'].is_clicked(mouse_pos, event):
@@ -583,10 +674,11 @@ class PlayScreen:
             elif self.buttons['lower'].is_clicked(mouse_pos, event):
                 self._guess_lower()
             elif self.buttons['transfer'].is_clicked(mouse_pos, event):
+                play_sound("click-sfx")
                 self._transfer()
             elif self.buttons['pay_off'].is_clicked(mouse_pos, event):
+                play_sound("click-sfx")
                 self._pay()
-        self.set_state(GameState.PLAY)
     
     def draw(self, screen, mouse_pos):
         screen.fill(settings.BLACK)
@@ -610,8 +702,6 @@ class PlayScreen:
         if self.playing != True:
             self.playing = True
             self.set_state(GameState.MAIN_MENU)
-        
-        self.set_state(GameState.PLAY)
 
 
     # GAME FUNCTIONS
@@ -630,16 +720,20 @@ class PlayScreen:
         if self.clue is not None and self.actual is not None:
             if self.clue < self.actual:
                 self._win()
+                play_sound("success-sfx")
             else:
                 self._lose()
+                play_sound("failure-sfx")
 
 
     def _guess_lower(self):
         if self.clue is not None and self.actual is not None:
             if self.clue > self.actual:
                 self._win()
+                play_sound("success-sfx")
             else:
                 self._lose()
+                play_sound("failure-sfx")
 
     def _win(self):
         self.texts['clue'].set_color((0,255,0))
@@ -648,6 +742,8 @@ class PlayScreen:
         self.score += 1
         self.actual = None
         self.texts['temporary_storage'].set_text(str(self.temporary_storage))
+        self.strikes = max(0, self.strikes-1)
+        self.texts['strikes'].set_text(str(self.strikes))
 
     def _lose(self):
         self.texts['clue'].set_color((255,0,0))
@@ -655,6 +751,11 @@ class PlayScreen:
         self.temporary_storage = 0
         self.actual = None
         self.texts['temporary_storage'].set_text(str(self.temporary_storage))
+        self.strikes += 1
+        self.texts['strikes'].set_text(str(self.strikes))
+
+        if self.strikes == 5:
+            self._end_round("TOO MANY STRIKES")
 
     def _reset(self):
         self.texts['clue'].set_color((255, 255, 255))
@@ -709,33 +810,42 @@ class PlayScreen:
 
     def _stop_playing(self):
         self.playing = False
+        play_music("main_menu")
 
-    def _end_round(self):
+    def _end_round(self, reason:str):
+        play_music("endgame", loops=0)
         for button in self.buttons.values():
             button.set_enabled(False)
         self.timer_manager.delay(0, lambda: self.texts['announcement'].set_text(""))
         self.timer_manager.delay(0, lambda: self.texts['announcement'].set_visibility(True))
         self.timer_manager.delay(2000, lambda: self.texts['announcement'].set_text("GAME"))
         self.timer_manager.delay(4000, lambda: self.texts['announcement'].set_text("GAME OVER"))
+
+        for i in range(len(reason)):
+            self.timer_manager.delay(6000+((3000//len(reason))*i), lambda i=i: self.texts['announcement'].set_text(reason[:i+1]))
+
         self.table.set_data([{
                     "User": settings.load_settings()['username'],
                     "Level": self.level,
                     "Score": self.score,
                     "Date": self.started_at
                 }])
-        db_handling.insert_row(db_handling.GameSessionModel, {
-                'user_id': db_handling.query_rows(db_handling.UserModel, {"username": settings.load_settings()["username"]})[0].id,
-                'started_at': self.started_at,
-                'score': self.score,
-                'level_reached': self.level
-            })
-        self.timer_manager.delay(6000, lambda: self.table.set_visibility(True))
-        self.timer_manager.delay(10000, lambda: self._stop_playing())
+        try:
+            db_handling.insert_row(db_handling.GameSessionModel, {
+                    'user_id': db_handling.query_rows(db_handling.UserModel, {"username": settings.load_settings()["username"]})[0].id,
+                    'started_at': self.started_at,
+                    'score': self.score,
+                    'level_reached': self.level
+                })
+        except Exception as e:
+            print(f"Error: {e}")
+        self.timer_manager.delay(10000, lambda: self.table.set_visibility(True))
+        self.timer_manager.delay(15000, lambda: self._stop_playing())
         
 
     def _timer(self):
         if self.time_remaining <= 0:
-            self._end_round()
+            self._end_round("TIME RAN OUT")
         else:
             self.time_remaining -= 1
             self.texts['timer'].set_text(str(self.time_remaining))
@@ -799,6 +909,7 @@ class LeaderboardScreen:
     def handle_event(self, event, mouse_pos):
         self.table.handle_event(event, mouse_pos)
         if self.back_button.is_clicked(mouse_pos, event):
+            play_sound("click-sfx")
             self.set_state(GameState.MAIN_MENU)
     
     def draw(self, screen, mouse_pos):
@@ -842,6 +953,9 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
+        play_music("main_menu")
+        
+
         
 
         
@@ -858,6 +972,8 @@ class Game:
         
         
     def _set_state(self, new_state: GameState):
+        if new_state == GameState.PLAY:
+            self.play = PlayScreen(set_state=self._set_state)
         self.state = new_state
 
         
@@ -876,18 +992,12 @@ class Game:
             
             if event.type == pygame.KEYDOWN:
                 if self.state == GameState.PLAY and (event.key == pygame.K_ESCAPE):
+                    play_music("main_menu")
                     self.state = GameState.MAIN_MENU
             
             # Handle events based on current state
             elif self.state == GameState.MAIN_MENU:
                 self.main_menu.handle_event(event, mouse_pos)
-                #new_state = self.main_menu.handle_event(event, mouse_pos)
-                # Create a fresh PlayScreen when transitioning to PLAY
-                #if new_state == GameState.PLAY:
-                #    self.play = PlayScreen()
-                #if new_state == GameState.LEADERBOARD:
-                #    self.leaderboard = LeaderboardScreen()
-                #self.state = new_state
 
             elif self.state == GameState.SETTINGS:
                 self.settings.handle_event(event, mouse_pos)
@@ -907,6 +1017,8 @@ class Game:
             self.intro.update()
         elif self.state == GameState.MAIN_MENU:
             self.main_menu.update()
+        elif self.state == GameState.SETTINGS:
+            self.settings.update()
         elif self.state == GameState.PLAY:
             self.play.update()
     

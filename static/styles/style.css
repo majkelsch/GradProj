@@ -29,12 +29,13 @@
 /* CLEAN UP */
 
 body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    transition: all 0.3s ease; /* Smooth transition when toggling */
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: all 0.3s ease; /* Smooth transition when toggling */
+  height: 100dvh;
 }
 
 p,

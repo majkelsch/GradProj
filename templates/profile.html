@@ -16,8 +16,11 @@
             <h2>User Information</h2>
             <p><b>Username:</b> {{ user.username }}</p>
             <p><b>Email:</b> {{ user.email }}</p>
-            <a class="button" href="{{ url_for('change_password') }}">Change password</a>
-            <button href="{{ url_for('logout') }}">Logout</button>
+            <div class="flex-row">
+                <a class="button" href="{{ url_for('change_password') }}">Change password</a>
+                <a class="button" href="{{ url_for('logout') }}">Logout</a>
+            </div>
+            
         </div>
         <div class="container width-70">
             <h2>Game Sessions</h2>
