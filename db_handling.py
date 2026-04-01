@@ -5,9 +5,13 @@ from typing import TypedDict, Optional, Any, Type
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import joinedload
+import os
 
 DATABASE_FILE = 'gradproj.db'
 DATABASE_URL = f'sqlite:///instance/{DATABASE_FILE}'
+
+if not os.path.exists("instance"):
+    os.makedirs("instance")
 
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
