@@ -9,7 +9,7 @@ from db_handling import UserModel, GameSessionModel, generate_password_hash, ins
 
 def generate_mockup_data(num_users: int = 10, sessions_per_user: int = 5):
     """
-    Fill gradproj.db with randomized test data.
+    Fill ditr.db with randomized test data.
     
     Args:
         num_users: Number of random users to generate

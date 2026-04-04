@@ -15,3 +15,11 @@ Activate venv:
 Some git fixes:
 `git config --global user.email "email"`
 `git config --global user.name "nick"`
+
+
+
+http://dbs.spskladno.cz/myadmin/
+host: dbs.spskladno.cz'
+user: student#cislo#
+pass: spsnet
+database: vyuka#cislo#

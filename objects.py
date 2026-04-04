@@ -14,13 +14,15 @@ class Button:
                 width:int, 
                 height:int, 
                 text:str, 
-                font:pygame.font.Font=pygame.font.Font(None, 36), 
+                font:pygame.font.Font=pygame.font.Font(None, 24), 
                 color:tuple=(255,255,255), hover_color:tuple=(0,0,0), 
                 bg_color:tuple=(0,0,0), bg_hover_color:tuple=(255,255,255), 
                 border_width:int=1, 
                 border_radius:int=0, 
                 enabled:bool=True, 
-                visible:bool=True
+                visible:bool=True,
+                sfx:str="click-sfx",
+                silenced:bool=False
                 ):
         
         self.rect = pygame.Rect(x, y, width, height)
@@ -42,8 +44,10 @@ class Button:
         # State
         self.is_hovered = False
         self.enabled = enabled
-
         self.visible = visible
+
+        self.sfx = sfx
+        self.silenced = silenced
         
     def draw(self, screen):
         if not self.visible:
@@ -70,7 +74,15 @@ class Button:
             self.enabled = enabled
 
     def is_clicked(self, pos, event):
-        return self.rect.collidepoint(pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 if self.enabled else 0
+        if self.rect.collidepoint(pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 if self.enabled else 0:
+            if not self.silenced:
+                try:
+                    sfx = pygame.mixer.Sound(f"assets/sfx/{self.sfx}.mp3")
+                    sfx.set_volume(settings.load_settings()['volume-sfx'])
+                    sfx.play()
+                except Exception as e:
+                    print(f"Error: {e}")
+            return True
     
 
 

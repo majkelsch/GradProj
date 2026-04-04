@@ -38,11 +38,15 @@ body {
   height: 100dvh;
 }
 
+img {
+  width: 100%;
+}
+
 p,
 h1,
 h2,
 h3,
-h4 {
+h4, li {
     margin: 0;
     margin-block-end: 0.3em;
     font-family: "Geist Mono", monospace;
@@ -183,6 +187,10 @@ table tr:nth-child(even) {
   background-color: var(--bg-surface-secondary);
 }
 
+table tr.invalidated {
+  background-color: #ff5c5c;
+}
+
 /* ORGANIZATION */
 .flex-row {
   display: flex;
@@ -193,6 +201,10 @@ table tr:nth-child(even) {
 
 .width-30 {
   width: 30%;
+}
+
+.width {
+  width: var(--width);
 }
 
 .width-70 {

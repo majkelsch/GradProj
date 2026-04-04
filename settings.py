@@ -5,7 +5,7 @@ SCREEN_HEIGHT = 800 #px
 
 FPS = 60
 
-GAME_TITLE = "GradProj"
+GAME_TITLE = "DEEP IN THE RED"
 
 
 
