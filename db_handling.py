@@ -5,6 +5,7 @@ from typing import TypedDict, Optional, Any, Type
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import OperationalError
 import os
 
 DATABASE_FILE = 'ditr.db'
@@ -108,4 +109,37 @@ class GameSessionModel(Base):
         return f"<GameSession(id={self.id}, user_id={self.user_id}, started_at='{self.started_at}', score={self.score}, level_reached={self.level_reached}), invalid={self.invalid}>"
 
 
+
+
 Base.metadata.create_all(bind=Session().get_bind())
+
+with Session() as session:
+    try:
+        admin_user = session.query(UserModel).filter_by(username="admin").first()
+        anonymous_user = session.query(UserModel).filter_by(username="Anonymous").first()
+
+        if admin_user is None:
+            admin = UserModel(
+                username="admin",
+                email="admin@admin.com",
+                password_hash=generate_password_hash("admin"),
+                role="admin",
+                banned=0,
+            )
+            session.add(admin)
+
+        if anonymous_user is None:
+            anon = UserModel(
+                username="Anonymous",
+                email="",
+                password_hash=generate_password_hash(""),
+                role="user",
+                banned=0,
+            )
+            session.add(anon)
+
+        if admin_user is None or anonymous_user is None:
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        print(e)
